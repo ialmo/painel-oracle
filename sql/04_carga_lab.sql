@@ -1,8 +1,8 @@
 -- =====================================================================
 -- 04 - Gerador de carga de laboratório (100% dentro do Oracle)
 -- Executar como CARGA_LAB no PDB FREEPDB1.
---   docker exec -it painel-oracle-db sqlplus carga_lab/CargaLab123@//localhost:1521/FREEPDB1
---   SQL> @/opt/painel/sql/04_carga_lab.sql
+--   docker exec -i <container> sqlplus carga_lab/CargaLab123@//localhost:1521/FREEPDB1 < sql/04_carga_lab.sql
+--   (ou: bash scripts/configurar.sh, que roda 01 a 05 na ordem)
 --
 -- Em vez de um script externo abrindo conexões, a carga é feita por
 -- jobs do DBMS_SCHEDULER. Cada job = uma sessão Oracle trabalhando.

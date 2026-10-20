@@ -1,8 +1,8 @@
 -- =====================================================================
 -- 01 - Usuários e permissões
 -- Executar como SYS (AS SYSDBA) conectado no PDB FREEPDB1.
---   docker exec -it painel-oracle-db sqlplus sys/OraclePwd123@//localhost:1521/FREEPDB1 as sysdba
---   SQL> @/opt/painel/sql/01_usuarios_e_grants.sql
+--   docker exec -i <container> sqlplus "sys/<senha>@//localhost:1521/FREEPDB1 as sysdba" < sql/01_usuarios_e_grants.sql
+--   (ou: bash scripts/configurar.sh, que roda 01 a 05 na ordem)
 --
 -- Por que SYS? Só o dono das views V$ (SYS) consegue conceder SELECT
 -- nelas a outro usuário. O SYSTEM lê, mas não pode repassar.

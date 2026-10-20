@@ -39,8 +39,9 @@ Oracle Free 23ai (FREEPDB1)
 painel-oracle/
 ├── README.md
 ├── docker/
-│   ├── compose.yaml            Oracle Free 23ai + ORDS
-│   └── .env.example            senhas/portas (opcional)
+│   ├── compose.yaml            ORDS (conecta num Oracle já existente)
+│   ├── compose.banco.yaml      opcional: sobe também um Oracle Free 23ai
+│   └── .env.example            qual Oracle usar, senha, portas
 ├── sql/
 │   ├── 01_usuarios_e_grants.sql    SYS      → cria PAINEL_MON e CARGA_LAB + grants nas V$
 │   ├── 02_views_monitoramento.sql  PAINEL_MON → views VW_*
@@ -63,51 +64,66 @@ painel-oracle/
 ## Pré-requisitos
 
 - Docker Desktop (ou Docker Engine) com Docker Compose
-- 8 GB de RAM livres para o Docker e ~15 GB de disco
+- **Um Oracle 23ai rodando em Docker** (por exemplo, o container das aulas). Se não tiver, o projeto sobe um (veja a opção B).
 - Opcional: DBeaver/SQL Developer para explorar as consultas
 
 ## Como rodar
 
-### 1. Subir Oracle + ORDS
+### 1. Configurar qual Oracle usar
 
 ```bash
 cd docker
-docker login container-registry.oracle.com   # só se o pull pedir login
-docker compose up -d
-docker compose ps        # espere o "oracle" ficar (healthy)
+cp .env.example .env
 ```
 
-A primeira subida demora de 5 a 15 minutos: o Docker baixa as imagens, cria o banco e depois instala o ORDS. Para acompanhar:
+Edite `docker/.env` com os dados do seu container:
+
+| Variável | O que colocar | Como descobrir |
+| --- | --- | --- |
+| `DB_CONTAINER` | nome do container do Oracle | `docker ps` |
+| `ORACLE_PWD` | senha do SYS | `docker inspect <container>`, variável `ORACLE_PASSWORD` (imagem gvenzl) ou `ORACLE_PWD` (imagem oficial) |
+| `DB_PORT` | porta publicada no seu computador | `docker ps`, coluna PORTS (`0.0.0.0:1521->1521`) |
+
+### 2. Subir o ORDS
+
+**A) Já tenho um Oracle rodando** (caso mais comum):
 
 ```bash
-docker compose logs -f oracle   # até aparecer DATABASE IS READY TO USE
-docker compose logs -f ords     # até aparecer que o ORDS está escutando na 8080
+docker compose up -d
+docker compose logs -f ords   # espere "Iniciando ORDS" e o servidor no ar (CTRL+C para sair do log)
 ```
 
-### 2. Configurar o banco e a API
+**B) Não tenho Oracle:** sobe um Oracle Free 23ai junto (~4 GB de download). No `.env`, use `DB_CONTAINER=painel-oracle-db`:
 
-**macOS / Linux / Git Bash:** da raiz do projeto:
+```bash
+docker compose -f compose.yaml -f compose.banco.yaml up -d
+```
+
+Na primeira subida o ORDS se instala no banco (conectando como SYS), o que leva alguns minutos. Nas próximas, ele sobe direto.
+
+### 3. Criar usuários, views, job e API
+
+Da raiz do projeto (macOS, Linux ou Git Bash no Windows):
 
 ```bash
 bash scripts/configurar.sh
 ```
 
-**Windows (PowerShell) ou passo a passo manual:** rode, na ordem:
+O script lê o `docker/.env`, roda os SQL de 01 a 05 dentro do container do Oracle, espera o ORDS e testa a API.
+
+Para rodar manualmente, cada arquivo é enviado pelo stdin para o `sqlplus` do container:
 
 ```bash
-docker exec -it painel-oracle-db sqlplus "sys/OraclePwd123@//localhost:1521/FREEPDB1 as sysdba" @/opt/painel/sql/01_usuarios_e_grants.sql
-docker exec -it painel-oracle-db sqlplus painel_mon/PainelMon123@//localhost:1521/FREEPDB1 @/opt/painel/sql/02_views_monitoramento.sql
-docker exec -it painel-oracle-db sqlplus painel_mon/PainelMon123@//localhost:1521/FREEPDB1 @/opt/painel/sql/03_historico_scheduler.sql
-docker exec -it painel-oracle-db sqlplus carga_lab/CargaLab123@//localhost:1521/FREEPDB1 @/opt/painel/sql/04_carga_lab.sql
-# só depois que o ORDS terminou de instalar:
-docker exec -it painel-oracle-db sqlplus painel_mon/PainelMon123@//localhost:1521/FREEPDB1 @/opt/painel/sql/05_ords_modulo.sql
+docker exec -i oracle-23ai-free sqlplus "sys/SUA_SENHA@//localhost:1521/FREEPDB1 as sysdba" < sql/01_usuarios_e_grants.sql
+docker exec -i oracle-23ai-free sqlplus painel_mon/PainelMon123@//localhost:1521/FREEPDB1 < sql/02_views_monitoramento.sql
+docker exec -i oracle-23ai-free sqlplus painel_mon/PainelMon123@//localhost:1521/FREEPDB1 < sql/03_historico_scheduler.sql
+docker exec -i oracle-23ai-free sqlplus carga_lab/CargaLab123@//localhost:1521/FREEPDB1 < sql/04_carga_lab.sql
+docker exec -i oracle-23ai-free sqlplus painel_mon/PainelMon123@//localhost:1521/FREEPDB1 < sql/05_ords_modulo.sql
 ```
 
-(digite `exit` ao final de cada um, se o sqlplus ficar aguardando)
+Pelo DBeaver também funciona: abra os arquivos da pasta `sql/` e execute como script (Alt+X), conectado com o usuário indicado no cabeçalho de cada um (Host `localhost`, porta do `.env`, service `FREEPDB1`).
 
-Se preferir o DBeaver, abra os mesmos arquivos da pasta `sql/` e execute como script (Alt+X), conectado com o usuário indicado no cabeçalho de cada arquivo (Host `localhost`, porta `1522`, service `FREEPDB1`).
-
-### 3. Abrir o painel
+### 4. Abrir o painel
 
 ```text
 http://localhost:8181/painel/index.html
@@ -169,13 +185,15 @@ Ele responde nos mesmos caminhos e com os mesmos campos do ORDS real, com númer
 | Sintoma | Causa provável / solução |
 | --- | --- |
 | `docker compose up` falha no pull | Rode `docker login container-registry.oracle.com` (conta Oracle gratuita) e tente de novo. |
-| Script 05 dá `PLS-00201: identifier 'ORDS.ENABLE_SCHEMA'` | O ORDS ainda não terminou de instalar. Espere o log do container `ords` e rode o 05 de novo. |
+| Log do ORDS: `ORA-01017` / `invalid username/password` | `ORACLE_PWD` errado no `.env`. Corrija e rode `docker compose down -v && docker compose up -d`. |
+| Log do ORDS: `IO Error` / `connection refused` | Porta errada (`DB_PORT`) ou o Oracle está parado. |
+| Script 05 dá `PLS-00201: identifier 'ORDS.ENABLE_SCHEMA'` | O ORDS ainda não terminou de instalar. Espere o log (`docker compose logs -f ords`) e rode o `configurar.sh` de novo. |
 | Painel abre, mas um bloco mostra erro | Rode o endpoint no navegador para ver a mensagem. Normalmente é um grant faltando, então rode o script 01 e depois 02 a 05. |
 | `/ords/painel/...` dá 404 | O script 05 não rodou ou deu erro. Rode de novo como `PAINEL_MON`. |
 | `/painel/index.html` dá 404 | O volume da pasta `web` não montou. Rode `docker compose up -d --force-recreate ords`. Alternativa: `cd web && python -m http.server 5500` e abra `http://localhost:5500` (o CORS para essa porta já está liberado). |
 | "Estatísticas gerais" vazia | `V$SYSMETRIC` só tem valores 1 minuto após o startup. |
 | Gráfico sem pontos | O job grava a cada 15 s. Confira com `SELECT job_name, state FROM user_scheduler_jobs;` como `PAINEL_MON`. |
-| Precisa recomeçar do zero | `docker compose down -v` apaga **tudo** (banco e config do ORDS). |
+| Precisa recomeçar do zero | Rode `bash scripts/configurar.sh` de novo: ele recria os usuários `PAINEL_MON` e `CARGA_LAB`. `docker compose down -v` apaga a configuração do ORDS (e o banco, na opção B). |
 
 ## Segurança (laboratório)
 

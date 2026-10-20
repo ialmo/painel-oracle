@@ -2,7 +2,8 @@
 -- 05 - API REST no ORDS
 -- Executar como PAINEL_MON no PDB FREEPDB1, DEPOIS que o container do
 -- ORDS terminou a instalação (o pacote ORDS precisa existir no banco).
---   SQL> @/opt/painel/sql/05_ords_modulo.sql
+--   docker exec -i <container> sqlplus painel_mon/PainelMon123@//localhost:1521/FREEPDB1 < sql/05_ords_modulo.sql
+--   (ou: bash scripts/configurar.sh, que roda 01 a 05 na ordem)
 --
 -- Resultado: http://localhost:8181/ords/painel/monitor/...
 --

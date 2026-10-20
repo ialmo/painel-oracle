@@ -1,8 +1,8 @@
 -- =====================================================================
 -- 02 - Views de monitoramento
 -- Executar como PAINEL_MON no PDB FREEPDB1.
---   docker exec -it painel-oracle-db sqlplus painel_mon/PainelMon123@//localhost:1521/FREEPDB1
---   SQL> @/opt/painel/sql/02_views_monitoramento.sql
+--   docker exec -i <container> sqlplus painel_mon/PainelMon123@//localhost:1521/FREEPDB1 < sql/02_views_monitoramento.sql
+--   (ou: bash scripts/configurar.sh, que roda 01 a 05 na ordem)
 --
 -- Ideia: cada métrica do painel vira uma VIEW com nomes de colunas em
 -- português. O ORDS (script 05) só faz "SELECT * FROM view", então toda

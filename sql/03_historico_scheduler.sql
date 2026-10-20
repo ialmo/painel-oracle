@@ -1,7 +1,8 @@
 -- =====================================================================
 -- 03 - Histórico de métricas com DBMS_SCHEDULER
 -- Executar como PAINEL_MON no PDB FREEPDB1 (depois do script 02).
---   SQL> @/opt/painel/sql/03_historico_scheduler.sql
+--   docker exec -i <container> sqlplus painel_mon/PainelMon123@//localhost:1521/FREEPDB1 < sql/03_historico_scheduler.sql
+--   (ou: bash scripts/configurar.sh, que roda 01 a 05 na ordem)
 --
 -- As V$ mostram só o "agora". Para o painel desenhar uma linha do tempo,
 -- um job do próprio Oracle tira uma "foto" da VW_RESUMO a cada 15 s e

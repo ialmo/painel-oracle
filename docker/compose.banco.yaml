@@ -1,0 +1,41 @@
+# Opcional: sobe também um Oracle Free 23ai, para quem NÃO tem um banco
+# rodando. Use junto com o compose.yaml:
+#
+#   docker compose -f compose.yaml -f compose.banco.yaml up -d
+#
+# No .env deixe:  DB_CONTAINER=painel-oracle-db
+# (DB_HOST/DB_PORT não são usados: o ORDS fala com o banco pela rede interna)
+#
+# Precisa de ~4 GB de download e ~2,5 GB de memória livre no Docker.
+
+services:
+  oracle:
+    container_name: painel-oracle-db
+    image: container-registry.oracle.com/database/free:latest
+    ports:
+      - "${ORACLE_HOST_PORT:-1522}:1521"
+    cap_add:
+      - SYS_NICE
+    environment:
+      ORACLE_PWD: ${ORACLE_PWD}
+      ORACLE_PDB: FREEPDB1
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "/opt/oracle/checkDBStatus.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 5m
+
+  ords:
+    depends_on:
+      oracle:
+        condition: service_healthy
+    environment:
+      DBHOST: oracle
+      DBPORT: 1521
+
+volumes:
+  oracle-data:
+    name: painel-oracle-data
