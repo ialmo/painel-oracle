@@ -52,13 +52,17 @@ services:
             --log-folder /tmp \
             --password-stdin
         fi
+        # Pasta de arquivos estáticos: o painel fica em /painel/index.html
+        ords --config "$$CFG" config set standalone.doc.root /opt/painel-docroot
         echo ">>> Iniciando ORDS na porta 8080"
         exec ords --config "$$CFG" serve
     volumes:
       - ords-config:/etc/ords/config
       # O próprio ORDS serve o painel (pasta web) em /painel/
       # -> http://localhost:8181/painel/index.html  (mesma origem da API, sem CORS)
-      - ../web:/etc/ords/config/global/standalone/doc_root/painel:ro
+      # Fica FORA de /etc/ords/config: montar algo lá dentro cria pastas como
+      # root antes da instalação e o ORDS (usuário oracle) não consegue gravar.
+      - ../web:/opt/painel-docroot/painel:ro
 
 volumes:
   ords-config:

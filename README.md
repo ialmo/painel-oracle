@@ -2,7 +2,7 @@
 
 Trabalho final · Grupo 1 · Oracle ADM — MBA em Engenharia de Dados (PUC Minas)
 
-> **Integrantes:** _preencher_
+> **Integrante:** Ialmo Gontijo
 
 Dashboard simples que mostra, em tempo quase real, o estado de um Oracle Free 23ai: instância, sessões, esperas, bloqueios, SQLs mais custosos e uso de tablespaces. Os dados saem das views administrativas do Oracle, viram API REST no **ORDS** e aparecem num painel HTML que se atualiza sozinho.
 

@@ -1,3 +1,17 @@
+# Configuração local (senhas) — use docker/.env.example como modelo
 docker/.env
-.DS_Store
+.env
+*.env
+!*.env.example
+
+# Logs e arquivos gerados pelo ORDS/Java
+ords-log/
+hsperfdata_*/
+*.log
+
+# Python
 __pycache__/
+*.pyc
+
+# Sistema
+.DS_Store
